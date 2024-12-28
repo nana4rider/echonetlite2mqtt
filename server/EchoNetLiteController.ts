@@ -32,11 +32,13 @@ export class EchoNetLiteController{
         //console.log(`recieved:` + b);
         if(els.ESV === EL.SET_RES)
         {
-          for(const propertyCode in els.DETAILs)
-          {
-            //console.log(`sendOPC1 ${rinfo.address} ${els.SEOJ} ${EL.GET} ${propertyCode} `);
-            EL.sendOPC1(rinfo.address, "05ff01", els.SEOJ, EL.GET, propertyCode, "");
-          }
+          //console.log(`sendOPC1 ${rinfo.address} ${els.SEOJ} ${EL.GET} ${propertyCode} `);
+          EL.sendELDATA(rinfo.address, {
+            SEOJ: "05ff01",
+            DEOJ: els.SEOJ,
+            ESV: EL.GET,
+            DETAILs: els.DETAILs
+          });
         }
         if(els.ESV === EL.GET_RES)
         {
@@ -159,6 +161,41 @@ export class EchoNetLiteController{
     }
     start = ():void=>{
       EL.search();
+    }
+
+    setDeviceProperties = (id:DeviceId, entries:any):void =>{
+      const deviceRepository = new DeviceRepository();
+
+      let details: Record<string, string> = {};
+      for (const [propertyName, newValue] of Object.entries(entries)) {
+        const property = deviceRepository.getProperty(id, propertyName);
+    
+        const echoNetData = deviceRepository.propertyToEchoNetData(id, propertyName, newValue);
+        if(echoNetData===undefined)
+        {
+          console.log(`setDeviceProperty echoNetData===undefined newValue=${newValue}`);
+          return;
+        }
+        if(property === undefined)
+        {
+          console.log(`setDeviceProperty property === undefined propertyName=${propertyName}`);
+          return;
+        }
+        let epc = property.epc;
+        if(epc.toLowerCase().startsWith("0x"))
+        {
+          epc = epc.replace(/^0x/gi, "");
+        }
+        details[epc] = echoNetData;
+      }
+      console.log(`[ECHONETLite] send ${id.ip} ${id.eoj} ${EL.SETC} ${JSON.stringify(details)}`);
+
+      EL.sendELDATA(id.ip, {
+        SEOJ: "05ff01",
+        DEOJ: id.eoj,
+        ESV: EL.SETC,
+        DETAILs: details
+      });
     }
 
     requestDeviceProperty = (id:DeviceId, propertyName:string):void =>{

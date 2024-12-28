@@ -112,6 +112,16 @@ declare module "echonet-lite" {
     epc: string | number,
     edt: string | number | number[]
   ): number[];
+  function sendELDATA(
+    ip: string,
+    eldata: {
+      TID?: string,
+      SEOJ: string,
+      DEOJ: string,
+      ESV: string,
+      DETAILs: { [key: string]: string | number | number[] }
+    }
+  ): number[];
   function sendString(ip: string, string: string): number[];
   function returner(
     bytes: number[],

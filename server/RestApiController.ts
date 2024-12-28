@@ -46,6 +46,7 @@ export class RestApiController
     app.get("/elapi/v1/devices/:deviceId/properties", this.getProperties);
     app.get("/elapi/v1/devices/:deviceId/properties/:propertyName", this.getProperty);
     
+    app.put("/elapi/v1/devices/:deviceId/properties", this.putProperties);
     app.put("/elapi/v1/devices/:deviceId/properties/:propertyName", this.putProperty);
     app.put("/elapi/v1/devices/:deviceId/properties/:propertyName/request", this.requestProperty);
 
@@ -244,6 +245,49 @@ export class RestApiController
   
     const result:{[key:string]:any} = {};
     result[propertyName] = foundDevice.propertiesValue[propertyName].value;
+    res.json(result);
+  }
+
+  private putProperties = (
+    req: express.Request,
+    res: express.Response
+  ): void => {
+    const deviceId = req.params.deviceId;
+    const body = req.body;
+    const propertyNames = Object.keys(body);
+  
+    console.log(`[RESTAPI] put properties: ${deviceId}\t${JSON.stringify(body)}`)
+  
+    const foundDevice = this.deviceStore.get(deviceId);
+    if(foundDevice === undefined){
+      res.status(404);
+      res.end('device not found : ' + deviceId);
+      console.log('device not found : ' + deviceId)
+      return;
+    }
+    for (const propertyName of propertyNames) {
+      if((propertyName in foundDevice.propertiesValue)===false)
+      {
+        res.status(404);
+        res.end('property not found : ' + propertyName);
+        console.log('property not found : ' + propertyName)
+        return;
+      }
+  
+      if((propertyName in req.body)===false){
+        res.status(404);  //Bad Request
+        res.end('Bad Request : ' + JSON.stringify(req.body));
+        console.log('Bad Request : ' + JSON.stringify(req.body));
+        return;
+      }
+    }
+  
+    this.firePropertyChangedRequestEvent(deviceId, 'multiple', body);
+  
+    const result:{[key:string]:any} = {};
+    for (const propertyName of propertyNames) {
+      result[propertyName] = foundDevice.propertiesValue[propertyName].value;
+    }
     res.json(result);
   }
 

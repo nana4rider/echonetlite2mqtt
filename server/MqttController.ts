@@ -89,6 +89,50 @@ export class MqttController
           this.firePropertyChnagedEvent(deviceId, propertyName, newValue);
         }
       }
+      // multiple set
+      {
+        const regex = RegExp(`${this.baseTopic}/([^/]+)/properties/set`);
+        const match = topic.match(regex);
+        if(match!==null)
+        {
+          const deviceId = match[1];
+          if(this.deviceStore.exists(deviceId)===false)
+          {
+            //error
+            return;
+          }
+
+          const foundDevice = this.deviceStore.get(deviceId);
+          if(foundDevice===undefined){
+            //error
+            return;
+          }
+          
+          //データのパース
+          const bodyText = payload.toString();
+
+          let entries;
+          try {
+            entries = JSON.parse(bodyText);
+          } catch (err) {
+            console.log(err);
+            return;
+          }
+
+          const newValues: Record<string, any> = {};
+  
+          for (const [propertyName, newValue] of Object.entries(entries)) {
+            const property = foundDevice.properties.find(_=>_.name === propertyName);
+            if(property===undefined){
+              //error
+              return;
+            }
+            newValues[propertyName] = newValue;
+          }
+  
+          this.firePropertyChnagedEvent(deviceId, 'multiple', newValues);
+        }
+      }
       // request
       {
         const regex = RegExp(`${this.baseTopic}/([^/]+)/properties/([^/]+)/request`);

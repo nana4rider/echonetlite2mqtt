@@ -254,10 +254,17 @@ restApiController.addPropertyChangedRequestEvent((deviceId:string, propertyName:
     return;
   }
 
-  logger.output(`[RESTAPI] property changed id:${deviceId}, property:${propertyName}, value:${newValue.toString()}`);
-  eventRepository.newEvent(`LOG`);
-
-  echoNetListController.setDeviceProperty({id: deviceId, ip: device.ip, eoj:device.eoj}, propertyName, newValue);
+  if (propertyName === 'multiple') {
+    logger.output(`[RESTAPI] property changed id:${deviceId}, values:${JSON.stringify(newValue)}`);
+    eventRepository.newEvent(`LOG`);
+  
+    echoNetListController.setDeviceProperties({id: deviceId, ip: device.ip, eoj:device.eoj}, newValue);
+  } else {
+    logger.output(`[RESTAPI] property changed id:${deviceId}, property:${propertyName}, value:${newValue.toString()}`);
+    eventRepository.newEvent(`LOG`);
+  
+    echoNetListController.setDeviceProperty({id: deviceId, ip: device.ip, eoj:device.eoj}, propertyName, newValue);
+  }
 });
 restApiController.addPropertyRequestedRequestEvent((deviceId:string, propertyName:string):void=>{
   const device = deviceStore.get(deviceId);
@@ -284,16 +291,23 @@ mqttController.addPropertyChnagedEvent((deviceId:string, propertyName:string, va
     logger.output('[MQTT] device not found : ' + deviceId)
     return;
   }
-  if((propertyName in device.propertiesValue)===false)
-  {
-    logger.output('[MQTT] property not found : ' + propertyName)
-    return;
+  if (propertyName === 'multiple') {
+    logger.output(`[MQTT] property changed id:${deviceId}, values:${JSON.stringify(value)}`);
+    eventRepository.newEvent(`LOG`);
+  
+    echoNetListController.setDeviceProperties({id: deviceId, ip: device.ip, eoj:device.eoj}, value);
+  } else {
+    if((propertyName in device.propertiesValue)===false)
+    {
+      logger.output('[MQTT] property not found : ' + propertyName)
+      return;
+    }
+
+    logger.output(`[MQTT] property changed id:${deviceId}, property:${propertyName}, value:${value.toString()}`);
+    eventRepository.newEvent(`LOG`);
+  
+    echoNetListController.setDeviceProperty({id: deviceId, ip: device.ip, eoj:device.eoj}, propertyName, value);
   }
-
-  logger.output(`[MQTT] property changed id:${deviceId}, property:${propertyName}, value:${value.toString()}`);
-  eventRepository.newEvent(`LOG`);
-
-  echoNetListController.setDeviceProperty({id: deviceId, ip: device.ip, eoj:device.eoj}, propertyName, value);
 });
 mqttController.addPropertyRequestedEvent((deviceId:string, propertyName:string):void=>{
   const device = deviceStore.get(deviceId);
