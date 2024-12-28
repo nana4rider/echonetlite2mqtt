@@ -1,5 +1,7 @@
 FROM node:14-buster-slim AS build
 
+RUN apt-get update && apt-get install -y git
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -16,6 +18,8 @@ RUN npm run build
 
 
 FROM node:14-buster-slim AS runtime
+
+RUN apt-get update && apt-get install -y git
 
 # RUN apk --no-cache -U upgrade
 RUN mkdir -p /app/front/build && mkdir -p /app/.ts-node && chown -R node:node /app
